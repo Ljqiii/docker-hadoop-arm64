@@ -1,4 +1,4 @@
-FROM bde2020/hadoop-base:2.0.0-hadoop3.2.1-java8
+FROM ljqiii/hadoop-base:hadoop3.3.1-java8-arm64-1.0.0
 
 MAINTAINER Ivan Ermilov <ivan.s.ermilov@gmail.com>
 
