@@ -1,4 +1,4 @@
-version: '3'
+version: '3.5'
 
 services:
   namenode:
@@ -109,7 +109,57 @@ services:
       labels:
         traefik.docker.network: hbase
         traefik.port: 8188
+  metastore-pgsql:
+    image: postgres:12
+    networks:
+      - hbase
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=pgmetastore
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
 
+
+
+  hive-metastore:
+    image: ljqiii/hive3:hadoop3.3.1-java8-arm64-1.0.0
+    depends_on:
+      - metastore-pgsql
+    networks:
+      - hbase
+#    command: schematool -initSchema -dbType postgres;/opt/hive/bin/hive --service metastore
+    command: /opt/hive/bin/hive --service metastore
+#    command: sleep 3000000000
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864"
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+  hive-server2:
+    image: ljqiii/hive3:hadoop3.3.1-java8-arm64-1.0.0
+    depends_on:
+      - metastore-pgsql
+      - hive-metastore
+    networks:
+      - hbase
+    command: /opt/hive/bin/hiveserver2
+    ports:
+      - 10000:10000
+    env_file:
+      - ./hadoop-hive.env
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864"
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
 volumes:
   datanode:
   namenode:
@@ -117,5 +167,4 @@ volumes:
 
 networks:
   hbase:
-    external:
       name: hbase
